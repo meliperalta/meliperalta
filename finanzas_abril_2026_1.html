@@ -201,9 +201,8 @@
           <div id="list-pagado"></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="ct-dot" style="background:#d4962a"></span>Por pagar / comprometido</div>
+          <div class="card-title"><span class="ct-dot" style="background:#8c2828"></span>Por pagar en abril</div>
           <div id="list-pendiente"></div>
-          <div class="prog-wrap" id="prog-pendiente"></div>
         </div>
       </div>
 
@@ -430,17 +429,10 @@ function renderAll() {
 
   document.getElementById('list-pendiente').innerHTML =
     PENDIENTE.map(x => `<div class="list-row">
-      <span class="row-name"><span class="row-dot" style="background:${x.dot}"></span>${x.name}${x.note ? `<span class="row-note">${x.note}</span>` : ''}</span>
-      <span class="row-amount amber">${fmt(x.amount)}</span>
+      <span class="row-name"><span class="row-dot" style="background:#8c2828"></span>${x.name}${x.note ? `<span class="row-note">${x.note}</span>` : ''}</span>
+      <span class="row-amount red">${fmt(x.amount)}</span>
     </div>`).join('') +
-    `<div class="total-row"><span class="tr-label">Total pendiente</span><span class="tr-val" style="color:#b8760a">${fmt(t.totalPendiente)}</span></div>`;
-
-  const progPct = Math.min(100, Math.round(t.totalPendiente / (SALDO_ACTUAL + BONO_ESTIMADO) * 100));
-  document.getElementById('prog-pendiente').innerHTML = `
-    <div class="prog-row">
-      <div class="prog-labels"><span>% del disponible total</span><span>${progPct}%</span></div>
-      <div class="prog-track"><div class="prog-fill" style="background:#d4962a;width:${progPct}%"></div></div>
-    </div>`;
+    `<div class="total-row"><span class="tr-label">Total por pagar</span><span class="tr-val red">${fmt(t.totalPendiente)}</span></div>`;
 
   const vars = customMovements.filter(m => m.type === 'expense');
   const varEl = document.getElementById('list-variables');
