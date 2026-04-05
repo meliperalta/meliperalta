@@ -610,6 +610,7 @@ function syncPctBtns() {
 }
 
 function renderAhorro() {
+  try {
   const sueldo  = parseFloat(document.getElementById('ahorro-sueldo').value) || 4000000;
   const pct     = parseFloat(document.getElementById('ahorro-pct').value)    || 25;
   const mep     = parseFloat(document.getElementById('ahorro-mep').value)    || 1440;
@@ -681,6 +682,10 @@ function renderAhorro() {
         }
       }
     });
+  }
+  } catch(e) {
+    document.getElementById('ahorro-tabla').innerHTML =
+      `<div style="color:#8c2828;padding:16px;font-size:13px;">Error: ${e.message}</div>`;
   }
 }
 
