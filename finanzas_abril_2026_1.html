@@ -150,6 +150,7 @@
     <button class="nav-item active" onclick="switchTab('resumen')">◉</button>
     <button class="nav-item" onclick="switchTab('detalle')">▤</button>
     <button class="nav-item" onclick="switchTab('agregar')">＋</button>
+    <button class="nav-item" onclick="switchTab('ahorro')">◈</button>
     <div class="sidebar-spacer"></div>
     <button class="nav-item">⚙</button>
   </aside>
@@ -167,6 +168,7 @@
       <button class="tab-btn active" onclick="switchTab('resumen')">Resumen</button>
       <button class="tab-btn" onclick="switchTab('detalle')">Tarjeta Galicia</button>
       <button class="tab-btn" onclick="switchTab('agregar')">+ Agregar</button>
+      <button class="tab-btn" onclick="switchTab('ahorro')">Proyección ahorro</button>
     </div>
 
     <!-- RESUMEN -->
@@ -175,7 +177,7 @@
         <div class="status-card paid">
           <div class="sc-label">✓ Ya pagado</div>
           <div class="sc-value" id="sc-paid">—</div>
-          <div class="sc-sub">Galicia + hospedaje USA</div>
+          <div class="sc-sub" id="sc-paid-sub" style="margin-top:10px;line-height:1.8;"></div>
         </div>
         <div class="status-card pending">
           <div class="sc-label">⏳ Por pagar</div>
@@ -294,6 +296,53 @@
         <h4>Movimientos agregados</h4>
         <div id="custom-list"></div>
       </div>
+    <!-- PROYECCIÓN AHORRO -->
+    <div id="panel-ahorro" class="panel">
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">Parámetros</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+          <div class="fg"><label>Sueldo mensual</label><input type="number" id="ahorro-sueldo" value="4000000" oninput="renderAhorro()"></div>
+          <div class="fg"><label>% a ahorrar en USD</label><input type="number" id="ahorro-pct" value="25" min="1" max="99" oninput="syncPctBtns();renderAhorro()"></div>
+          <div class="fg"><label>Dólar MEP</label><input type="number" id="ahorro-mep" value="1440" oninput="renderAhorro()"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="type-btn active-in" id="pct-btn-25" onclick="setPct(25)">25%</button>
+          <button class="type-btn" id="pct-btn-30" onclick="setPct(30)">30%</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Ahorro mensual</div>
+          <div class="kpi-value" id="ah-pesos" style="font-size:20px;">—</div>
+          <div class="kpi-sub" id="ah-usd">—</div>
+        </div>
+        <div class="kpi-card dark">
+          <div class="kpi-label">Resto para vivir</div>
+          <div class="kpi-value" id="ah-resto" style="font-size:20px;">—</div>
+          <div class="kpi-sub">después del ahorro</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Gastos fijos</div>
+          <div class="kpi-value" id="ah-fijos" style="font-size:20px;">—</div>
+          <div class="kpi-sub">sin cuotas de tarjeta</div>
+        </div>
+        <div class="kpi-card" id="ah-libre-card">
+          <div class="kpi-label">Libre para variables</div>
+          <div class="kpi-value" id="ah-libre" style="font-size:20px;">—</div>
+          <div class="kpi-sub" id="ah-libre-sub"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">Proyección mes a mes · cuotas decrecientes</div>
+        <div id="ahorro-tabla" style="overflow-x:auto;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">USD acumulados ahorrando cada mes</div>
+        <div class="chart-container" style="height:170px;"><canvas id="chartAhorro"></canvas></div>
+      </div>
     </div>
   </main>
 </div>
@@ -303,15 +352,16 @@ const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
 
 const PAGADO = [
   { name: 'Tarjeta Galicia (cierre marzo)', amount: 1241243 },
-  { name: 'U$S 94,83 tarjeta Galicia', amount: 136555 },
-  { name: 'Hospedaje USA (538 USD · MEP $1.440)', amount: 774720 },
+  { name: 'U$S 94,83 tarjeta Galicia', amount: 136555, usd: 94.83 },
+  { name: 'Hospedaje USA (538 USD · MEP $1.440)', amount: 774720, usd: 538 },
   { name: 'Servicios + alquiler seguro auto', amount: 730000 },
   { name: 'Wellty Club', amount: 40200 },
 ];
 
 const PENDIENTE = [
-  { name: 'Próximo resumen MP (cierra 12/4)', amount: 235833, dot: '#d4962a' },
-  { name: 'Gimnasio (cuota abril)', amount: 50000, dot: '#a8c4b4' },
+  { name: 'Próximo resumen MP (cierra 12/4)', amount: 235833 },
+  { name: 'Gimnasio (cuota abril)', amount: 50000 },
+  { name: 'Psicóloga (2 sesiones)', amount: 90000 },
 ];
 
 // Proyección cuotas en futuros resúmenes (no es gasto de abril)
@@ -369,8 +419,24 @@ function toggleUsdInfo() {
   document.getElementById('usd-info').style.display = usdInfoVisible ? 'block' : 'none';
 }
 
+const GASTOS_FIJOS_BASE = [
+  { name: 'Servicios + alquiler seguro auto', amount: 730000 },
+  { name: 'Resumen tarjeta estimado', amount: 235833 },
+  { name: 'Gimnasio', amount: 50000 },
+  { name: 'Wellty Club', amount: 40200 },
+  { name: 'Psicóloga (2 sesiones)', amount: 90000 },
+];
+const MESES_PROY = [
+  { mes: 'Mayo',       cuotas: 180839 },
+  { mes: 'Junio',      cuotas: 93026  },
+  { mes: 'Julio',      cuotas: 59610  },
+  { mes: 'Agosto',     cuotas: 22777  },
+  { mes: 'Septiembre', cuotas: 22777  },
+  { mes: 'Octubre',    cuotas: 0      },
+];
+
 let currentType = 'expense';
-let donutChart = null, cuotasChart = null;
+let donutChart = null, cuotasChart = null, ahorroChart = null;
 
 function setType(t) {
   currentType = t;
@@ -379,12 +445,13 @@ function setType(t) {
 }
 
 function switchTab(tab) {
-  ['resumen','detalle','agregar'].forEach((t, i) => {
+  ['resumen','detalle','agregar','ahorro'].forEach((t, i) => {
     document.querySelectorAll('.tab-btn')[i].classList.toggle('active', t === tab);
     document.querySelectorAll('.nav-item')[i].classList.toggle('active', t === tab);
     document.getElementById('panel-' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'detalle' && !cuotasChart) renderCuotasChart();
+  if (tab === 'ahorro') renderAhorro();
 }
 
 function calcTotals() {
@@ -406,7 +473,12 @@ function row(name, amount, cls = '', note = '') {
 function renderAll() {
   const t = calcTotals();
 
+  const totalUSD = PAGADO.filter(x=>x.usd).reduce((s,x)=>s+x.usd,0);
+  const totalPesos = PAGADO.filter(x=>!x.usd).reduce((s,x)=>s+x.amount,0);
   document.getElementById('sc-paid').textContent = fmt(t.totalPagado);
+  document.getElementById('sc-paid-sub').innerHTML =
+    `<span style="display:block;">En $ pesos: <strong>${fmt(totalPesos)}</strong></span>` +
+    `<span style="display:block;">En USD: <strong>U$S ${totalUSD.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong></span>`;
   document.getElementById('sc-pending').textContent = fmt(t.totalPendiente + t.customEx);
   document.getElementById('sc-available').textContent = fmt(t.disponible);
   const usd = Math.round(t.disponible / MEP);
@@ -467,7 +539,7 @@ function renderDonutChart(t) {
   const customEx = t.customEx || 0;
   const vals = [t.totalPagado, t.totalPendiente, customEx > 0 ? customEx : null].filter(v => v);
   const labels = ['Ya pagado', 'Por pagar', ...(customEx > 0 ? ['Variables'] : [])];
-  const colors = ['#4a6b58', '#d4962a', '#b85c5c'];
+  const colors = ['#4a6b58', '#8c2828', '#b85c5c'];
   const total = vals.reduce((s, v) => s + v, 0);
 
   donutChart = new Chart(ctx, {
@@ -522,6 +594,92 @@ function renderCustomList() {
       </div>
     </div>`;
   }).join('');
+}
+
+function setPct(p) {
+  document.getElementById('ahorro-pct').value = p;
+  syncPctBtns();
+  renderAhorro();
+}
+function syncPctBtns() {
+  const v = parseFloat(document.getElementById('ahorro-pct').value);
+  document.getElementById('pct-btn-25').className = 'type-btn' + (v===25?' active-in':'');
+  document.getElementById('pct-btn-30').className = 'type-btn' + (v===30?' active-in':'');
+}
+
+function renderAhorro() {
+  const sueldo  = parseFloat(document.getElementById('ahorro-sueldo').value) || 4000000;
+  const pct     = parseFloat(document.getElementById('ahorro-pct').value)    || 25;
+  const mep     = parseFloat(document.getElementById('ahorro-mep').value)    || 1440;
+
+  const ahorroPesos = Math.round(sueldo * pct / 100);
+  const ahorroUSD   = Math.round(ahorroPesos / mep);
+  const resto       = sueldo - ahorroPesos;
+  const fijoBase    = GASTOS_FIJOS_BASE.reduce((s,x)=>s+x.amount, 0);
+  const libreBase   = resto - fijoBase;
+
+  document.getElementById('ah-pesos').textContent = fmt(ahorroPesos);
+  document.getElementById('ah-usd').textContent   = `≈ U$S ${ahorroUSD.toLocaleString('es-AR')} al MEP $${mep.toLocaleString('es-AR')}`;
+  document.getElementById('ah-resto').textContent = fmt(resto);
+  document.getElementById('ah-fijos').textContent = fmt(fijoBase);
+
+  const libreEl = document.getElementById('ah-libre');
+  libreEl.textContent = fmt(Math.abs(libreBase));
+  libreEl.style.color = libreBase >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('ah-libre-sub').textContent = libreBase >= 0
+    ? 'para gastos variables y extras'
+    : 'déficit — revisar gastos';
+  document.getElementById('ah-libre-card').style.background = libreBase >= 0 ? '' : 'var(--red-pale)';
+
+  // Tabla mensual
+  let acumUSD = 0;
+  const filasCols = ['Mes','Ahorro USD','USD acum.','Gastos fijos','Libre variables'];
+  const colStyle = ['','color:#4a6b58;font-weight:600','color:#4a6b58','',''];
+  let tbody = MESES_PROY.map(m => {
+    acumUSD += ahorroUSD;
+    const gastos = fijoBase + m.cuotas;
+    const libre  = resto - gastos;
+    const libreColor = libre >= 0 ? '#4a6b58' : '#8c2828';
+    return `<tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+      <td style="padding:9px 8px;font-size:13px;">${m.mes}</td>
+      <td style="padding:9px 8px;font-size:13px;color:#4a6b58;font-weight:600;">U$S ${ahorroUSD.toLocaleString('es-AR')}</td>
+      <td style="padding:9px 8px;font-size:13px;color:#4a6b58;font-family:'DM Serif Display',serif;">U$S ${acumUSD.toLocaleString('es-AR')}</td>
+      <td style="padding:9px 8px;font-size:13px;color:var(--text-mid);">${fmt(gastos)}${m.cuotas?`<span style="font-size:10px;color:var(--text-light);display:block;">+${fmt(m.cuotas)} cuotas</span>`:''}</td>
+      <td style="padding:9px 8px;font-size:13px;font-family:'DM Serif Display',serif;color:${libreColor};">${fmt(Math.abs(libre))} ${libre<0?'⚠️':''}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ahorro-tabla').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="border-bottom:1.5px solid rgba(0,0,0,0.08);">
+        ${filasCols.map(c=>`<th style="padding:8px;font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:1px;text-align:left;">${c}</th>`).join('')}
+      </tr></thead>
+      <tbody>${tbody}</tbody>
+    </table>`;
+
+  // Chart USD acumulado
+  const labels = MESES_PROY.map(m=>m.mes);
+  const dataUSD = MESES_PROY.map((_,i)=> (i+1)*ahorroUSD);
+  if (ahorroChart) ahorroChart.destroy();
+  const ctx = document.getElementById('chartAhorro');
+  if (ctx) {
+    ahorroChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{
+        data: dataUSD,
+        backgroundColor: ['#4a6b58','#6b8f7a','#a8c4b4','#c8dbd2','#d8e8e0','#e8f0ec'],
+        borderRadius: 8, borderSkipped: false
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{ callbacks:{label: c=>' U$S '+c.raw.toLocaleString('es-AR')}, backgroundColor:'#2e3d35', titleColor:'#f5f2ec', bodyColor:'#a8c4b4', padding:10, cornerRadius:10 }},
+        scales: {
+          x: { grid:{display:false}, ticks:{color:'#9b9890', font:{family:'DM Sans',size:12}} },
+          y: { grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#9b9890', font:{family:'DM Sans',size:11}, callback: v=>'U$S '+v.toLocaleString('es-AR')} }
+        }
+      }
+    });
+  }
 }
 
 function addMovement() {
