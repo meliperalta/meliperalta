@@ -118,6 +118,7 @@
   .type-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid rgba(0,0,0,0.1); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-mid); transition: all 0.2s; }
   .type-btn.active-in { background: var(--green-pale); border-color: var(--green-light); color: var(--green); }
   .type-btn.active-ex { background: var(--red-pale); border-color: #e8b4b4; color: var(--red); }
+  .type-btn.active-sv { background: #eee8f5; border-color: #c8b4e8; color: #6040a0; }
   .fg { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
   .fg label { font-size: 11px; color: var(--text-light); letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500; }
   .fg input, .fg select { background: var(--bg); border: 1.5px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; }
@@ -134,6 +135,7 @@
   .hist-amount { font-family: 'DM Serif Display', serif; font-size: 15px; }
   .hist-amount.in { color: var(--green); }
   .hist-amount.ex { color: var(--red); }
+  .hist-amount.sv { color: #6040a0; }
   .del-btn { width: 24px; height: 24px; border-radius: 6px; border: none; background: rgba(0,0,0,0.05); color: var(--text-light); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
   .del-btn:hover { background: var(--red-pale); color: var(--red); }
   .empty-state { text-align: center; padding: 32px; color: var(--text-light); font-size: 13px; }
@@ -191,7 +193,7 @@
         <div class="status-card available">
           <div class="sc-label" style="display:flex;align-items:center;justify-content:space-between;">
             <span>💵 Para vivir / ahorrar</span>
-            <span id="usd-tooltip" title="" style="cursor:pointer;font-size:13px;opacity:0.6;position:relative;" onclick="toggleUsdInfo()">ℹ️</span>
+            <span id="usd-tooltip" title="" style="cursor:pointer;font-size:15px;position:relative;" onclick="toggleUsdInfo()">ℹ️</span>
           </div>
           <div id="usd-info" style="display:none;background:rgba(255,255,255,0.1);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:rgba(255,255,255,0.85);line-height:1.6;">
             <span id="usd-calc">—</span>
@@ -273,6 +275,7 @@
         <div class="type-toggle">
           <button class="type-btn" id="btn-in" onclick="setType('income')">↑ Ingreso</button>
           <button class="type-btn active-ex" id="btn-ex" onclick="setType('expense')">↓ Gasto</button>
+          <button class="type-btn" id="btn-sv" onclick="setType('saving')">◎ Ahorro</button>
         </div>
         <div class="fg"><label>Descripción</label><input type="text" id="inp-desc" placeholder="Ej: Supermercado Día" /></div>
         <div class="form-row">
@@ -290,6 +293,8 @@
               <option value="Servicios">Servicios</option>
               <option value="Sueldo">Sueldo / Ingreso</option>
               <option value="Bono">Bono</option>
+              <option value="Ahorro USD">Ahorro USD</option>
+              <option value="Ahorro pesos">Ahorro pesos</option>
               <option value="Otro">Otro</option>
             </select>
           </div>
@@ -299,6 +304,7 @@
       <div class="hist-card">
         <h4>Movimientos agregados</h4>
         <div id="custom-list"></div>
+        <div id="custom-totals" style="margin-top:14px;border-top:1px solid rgba(0,0,0,0.06);padding-top:12px;display:none;"></div>
       </div>
     </div>
 
@@ -451,8 +457,9 @@ let donutChart = null, cuotasChart = null, ahorroChart = null;
 
 function setType(t) {
   currentType = t;
-  document.getElementById('btn-in').className = 'type-btn' + (t === 'income' ? ' active-in' : '');
+  document.getElementById('btn-in').className = 'type-btn' + (t === 'income'  ? ' active-in' : '');
   document.getElementById('btn-ex').className = 'type-btn' + (t === 'expense' ? ' active-ex' : '');
+  document.getElementById('btn-sv').className = 'type-btn' + (t === 'saving'  ? ' active-sv' : '');
 }
 
 function switchTab(tab) {
@@ -594,17 +601,37 @@ function renderCuotasChart() {
 
 function renderCustomList() {
   const el = document.getElementById('custom-list');
-  if (!customMovements.length) { el.innerHTML = '<div class="empty-state">Todavía no agregaste movimientos.</div>'; return; }
+  const totalsEl = document.getElementById('custom-totals');
+  if (!customMovements.length) {
+    el.innerHTML = '<div class="empty-state">Todavía no agregaste movimientos.</div>';
+    if (totalsEl) totalsEl.style.display = 'none';
+    return;
+  }
+  const typeColor = { income:'in', expense:'ex', saving:'sv' };
+  const typeSymbol = { income:'+', expense:'-', saving:'◎' };
   el.innerHTML = customMovements.slice().reverse().map((m, ri) => {
     const i = customMovements.length - 1 - ri;
     return `<div class="hist-item">
       <div><div class="hist-name">${m.desc}</div><div class="hist-meta">${m.cat}</div></div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <span class="hist-amount ${m.type==='income'?'in':'ex'}">${m.type==='income'?'+':'-'}${fmt(m.amount)}</span>
+        <span class="hist-amount ${typeColor[m.type]||'ex'}">${typeSymbol[m.type]||''}${fmt(m.amount)}</span>
         <button class="del-btn" onclick="deleteMovement(${i})">✕</button>
       </div>
     </div>`;
   }).join('');
+
+  if (totalsEl) {
+    const totalIn  = customMovements.filter(m=>m.type==='income').reduce((s,m)=>s+m.amount,0);
+    const totalEx  = customMovements.filter(m=>m.type==='expense').reduce((s,m)=>s+m.amount,0);
+    const totalSv  = customMovements.filter(m=>m.type==='saving').reduce((s,m)=>s+m.amount,0);
+    const parts = [];
+    if (totalIn)  parts.push(`<span style="color:var(--green);">↑ Ingresos: <strong>${fmt(totalIn)}</strong></span>`);
+    if (totalEx)  parts.push(`<span style="color:var(--red);">↓ Gastos: <strong>${fmt(totalEx)}</strong></span>`);
+    if (totalSv)  parts.push(`<span style="color:#6040a0;">◎ Ahorros: <strong>${fmt(totalSv)}</strong></span>`);
+    totalsEl.style.display = parts.length ? 'flex' : 'none';
+    totalsEl.style.cssText += ';gap:16px;flex-wrap:wrap;font-size:13px;';
+    totalsEl.innerHTML = parts.join('');
+  }
 }
 
 function setPct(p) {
