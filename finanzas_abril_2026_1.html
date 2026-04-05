@@ -140,6 +140,10 @@
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   .status-card:nth-child(1){animation-delay:.05s} .status-card:nth-child(2){animation-delay:.1s} .status-card:nth-child(3){animation-delay:.15s}
+  .seg-btn { font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; padding:8px 22px; border-radius:9px; border:none; background:none; color:var(--text-light); cursor:pointer; transition:all 0.18s; }
+  .seg-btn:hover { color:var(--text); }
+  .seg-active { background:var(--bg-card) !important; color:var(--text) !important; box-shadow:0 1px 6px rgba(0,0,0,0.1); }
+
   ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
 </style>
 </head>
@@ -301,15 +305,20 @@
     <!-- PROYECCIÓN AHORRO -->
     <div id="panel-ahorro" class="panel">
       <div class="card" style="margin-bottom:18px;">
-        <div class="card-title">Parámetros</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
-          <div class="fg"><label>Sueldo mensual</label><input type="number" id="ahorro-sueldo" value="4000000" oninput="renderAhorro()"></div>
-          <div class="fg"><label>% a ahorrar en USD</label><input type="number" id="ahorro-pct" value="25" min="1" max="99" oninput="syncPctBtns();renderAhorro()"></div>
-          <div class="fg"><label>Dólar MEP</label><input type="number" id="ahorro-mep" value="1440" oninput="renderAhorro()"></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-          <button class="type-btn active-in" id="pct-btn-25" onclick="setPct(25)">25%</button>
-          <button class="type-btn" id="pct-btn-30" onclick="setPct(30)">30%</button>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div class="card-title" style="margin-bottom:12px;">¿Cuánto ahorrás?</div>
+            <div style="display:inline-flex;background:rgba(0,0,0,0.06);border-radius:12px;padding:4px;gap:2px;" id="seg-control">
+              <button onclick="setPct(20)" id="seg-20" class="seg-btn">20%</button>
+              <button onclick="setPct(25)" id="seg-25" class="seg-btn seg-active">25%</button>
+              <button onclick="setPct(30)" id="seg-30" class="seg-btn">30%</button>
+            </div>
+            <input type="hidden" id="ahorro-pct" value="25">
+          </div>
+          <div style="display:flex;gap:14px;">
+            <div class="fg" style="margin:0;min-width:160px;"><label>Sueldo mensual</label><input type="number" id="ahorro-sueldo" value="4000000" oninput="renderAhorro()"></div>
+            <div class="fg" style="margin:0;min-width:130px;"><label>Dólar MEP</label><input type="number" id="ahorro-mep" value="1440" oninput="renderAhorro()"></div>
+          </div>
         </div>
       </div>
 
@@ -600,14 +609,13 @@ function renderCustomList() {
 
 function setPct(p) {
   document.getElementById('ahorro-pct').value = p;
-  syncPctBtns();
+  [20,25,30].forEach(v => {
+    const el = document.getElementById('seg-'+v);
+    if (el) el.className = 'seg-btn' + (v===p?' seg-active':'');
+  });
   renderAhorro();
 }
-function syncPctBtns() {
-  const v = parseFloat(document.getElementById('ahorro-pct').value);
-  document.getElementById('pct-btn-25').className = 'type-btn' + (v===25?' active-in':'');
-  document.getElementById('pct-btn-30').className = 'type-btn' + (v===30?' active-in':'');
-}
+function syncPctBtns() { /* legacy, no-op */ }
 
 function renderAhorro() {
   try {
