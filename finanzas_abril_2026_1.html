@@ -216,6 +216,11 @@
           <div class="legend" id="chart-legend"></div>
         </div>
       </div>
+
+      <div class="card" style="margin-top:0;">
+        <div class="card-title"><span class="ct-dot" style="background:var(--accent)"></span>Cuotas en próximos resúmenes <span class="row-note" style="margin-left:4px;">no es gasto de abril</span></div>
+        <div id="list-proyeccion"></div>
+      </div>
     </div>
 
     <!-- DETALLE TARJETA -->
@@ -296,14 +301,22 @@ const PAGADO = [
   { name: 'U$S 94,83 tarjeta Galicia', amount: 136555 },
   { name: 'Hospedaje USA (538 USD · MEP $1.440)', amount: 774720 },
   { name: 'Servicios + alquiler seguro auto', amount: 730000 },
+  { name: 'Wellty Club', amount: 40200 },
 ];
 
 const PENDIENTE = [
   { name: 'Próximo resumen MP (cierra 12/4)', amount: 235833, dot: '#d4962a' },
   { name: 'Sommier Mercado Libre (1/3)', amount: 195633, dot: '#7aabcf' },
-  { name: 'Wellty Club', amount: 40200, dot: '#6b8f7a' },
   { name: 'Gimnasio (cuota abril)', amount: 50000, dot: '#a8c4b4' },
-  { name: 'Cuotas próximos resúmenes', amount: 348143, dot: '#c8b89a', note: 'estimado' },
+];
+
+// Proyección cuotas en futuros resúmenes (no es gasto de abril)
+const PROYECCION_CUOTAS = [
+  { mes: 'Mayo', amount: 180839 },
+  { mes: 'Junio', amount: 93026 },
+  { mes: 'Julio', amount: 59610 },
+  { mes: 'Agosto', amount: 22777 },
+  { mes: 'Septiembre', amount: 22777 },
 ];
 
 const TARJETA_CONSUMOS = [
@@ -426,6 +439,10 @@ function renderAll() {
     varEl.innerHTML = vars.map(m => row(m.desc, m.amount, 'red', m.cat)).join('') +
       `<div class="total-row"><span class="tr-label">Total variables</span><span class="tr-val red">${fmt(totalVars)}</span></div>`;
   }
+
+  document.getElementById('list-proyeccion').innerHTML =
+    PROYECCION_CUOTAS.map(x => row(x.mes, x.amount, 'muted')).join('') +
+    `<div class="total-row"><span class="tr-label">Total cuotas futuras</span><span class="tr-val muted">${fmt(PROYECCION_CUOTAS.reduce((s,x)=>s+x.amount,0))}</span></div>`;
 
   document.getElementById('list-tarjeta-main').innerHTML =
     TARJETA_CONSUMOS.map(x => row(x.name, x.amount, x.amount === 0 ? 'muted' : '', x.note || '')).join('');
