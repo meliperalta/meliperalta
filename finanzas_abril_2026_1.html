@@ -499,7 +499,7 @@ const BASE = {
     { name: 'Psicóloga', amount: 0, note: 'Reintegro total' },
   ],
   cuotas: [
-    { name: 'Tarjeta Galicia (vence 6/4)', amount: 1241243, dot: '#b85c5c' },
+    { name: 'Tarjeta Galicia (vence 6/4)', amount: 1241243, dot: '#4a6b58', note: '✓ Pagada' },
     { name: 'Sommier Mercado Libre (1/3)', amount: 195633, dot: '#7aabcf' },
     { name: 'Hospedaje USA · 538 USD (MEP $1.440)', amount: 774720, dot: '#d4a857' },
     { name: 'Cuotas sobre próx. resúmenes', amount: 348143, dot: '#9b85c9', note: 'estimado' },
@@ -640,8 +640,8 @@ function renderAll() {
     <div class="kpi-card">
       <div class="kpi-label">Tarjeta Galicia</div>
       <div class="kpi-value" style="font-size:22px;">$1.241.243</div>
-      <div class="kpi-sub">Vence 6 de abril</div>
-      <span class="kpi-tag neutral">+ U$S 94,83</span>
+      <div class="kpi-sub" style="color:var(--green);">✓ Pagada</div>
+      <span class="kpi-tag up">+ U$S 94,83 · Pagado</span>
     </div>
   `;
 
