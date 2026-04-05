@@ -45,19 +45,19 @@
   .status-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
   .status-card { border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow-sm); animation: fadeUp 0.4s ease both; }
   .status-card.paid { background: var(--green-pale); border: 1px solid rgba(74,107,88,0.15); }
-  .status-card.pending { background: #fff8f0; border: 1px solid rgba(154,110,32,0.2); }
+  .status-card.pending { background: #f9eaea; border: 1px solid rgba(140,40,40,0.18); }
   .status-card.available { background: var(--bg-dark); }
   .sc-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; margin-bottom: 8px; }
   .status-card.paid .sc-label { color: var(--green); }
-  .status-card.pending .sc-label { color: var(--amber); }
+  .status-card.pending .sc-label { color: #8c2828; }
   .status-card.available .sc-label { color: rgba(255,255,255,0.45); }
   .sc-value { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1; }
   .status-card.paid .sc-value { color: var(--green); }
-  .status-card.pending .sc-value { color: #b8760a; }
+  .status-card.pending .sc-value { color: #8c2828; }
   .status-card.available .sc-value { color: #fff; }
   .sc-sub { font-size: 12px; margin-top: 6px; font-weight: 300; }
   .status-card.paid .sc-sub { color: var(--green-mid); }
-  .status-card.pending .sc-sub { color: #c4882a; }
+  .status-card.pending .sc-sub { color: #b04040; }
   .status-card.available .sc-sub { color: rgba(255,255,255,0.4); }
 
   .saldo-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 12px; }
@@ -183,7 +183,13 @@
           <div class="sc-sub" id="sc-pending-sub">Compromisos del mes</div>
         </div>
         <div class="status-card available">
-          <div class="sc-label">Para vivir / ahorrar</div>
+          <div class="sc-label" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>💵 Para vivir / ahorrar</span>
+            <span id="usd-tooltip" title="" style="cursor:pointer;font-size:13px;opacity:0.6;position:relative;" onclick="toggleUsdInfo()">ℹ️</span>
+          </div>
+          <div id="usd-info" style="display:none;background:rgba(255,255,255,0.1);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:rgba(255,255,255,0.85);line-height:1.6;">
+            <span id="usd-calc">—</span>
+          </div>
           <div class="sc-value" id="sc-available">—</div>
           <div style="margin-top:12px;" id="saldo-breakdown"></div>
         </div>
@@ -357,6 +363,13 @@ let customMovements = [];
 try { customMovements = JSON.parse(localStorage.getItem('fin_abr26') || '[]'); } catch(e) {}
 function saveCustom() { try { localStorage.setItem('fin_abr26', JSON.stringify(customMovements)); } catch(e) {} }
 
+const MEP = 1440;
+let usdInfoVisible = false;
+function toggleUsdInfo() {
+  usdInfoVisible = !usdInfoVisible;
+  document.getElementById('usd-info').style.display = usdInfoVisible ? 'block' : 'none';
+}
+
 let currentType = 'expense';
 let donutChart = null, cuotasChart = null;
 
@@ -397,6 +410,9 @@ function renderAll() {
   document.getElementById('sc-paid').textContent = fmt(t.totalPagado);
   document.getElementById('sc-pending').textContent = fmt(t.totalPendiente + t.customEx);
   document.getElementById('sc-available').textContent = fmt(t.disponible);
+  const usd = Math.round(t.disponible / MEP);
+  document.getElementById('usd-calc').innerHTML =
+    `Si ahorrás todo: <strong>U$S ${usd.toLocaleString('es-AR')}</strong><br>Si ahorrás 50%: <strong>U$S ${Math.round(usd*0.5).toLocaleString('es-AR')}</strong><br>Si ahorrás 30%: <strong>U$S ${Math.round(usd*0.3).toLocaleString('es-AR')}</strong><br><span style="opacity:0.6;font-size:10px;">Dólar MEP $${MEP.toLocaleString('es-AR')}</span>`;
 
   document.getElementById('saldo-breakdown').innerHTML = `
     <div class="saldo-row"><span class="sr-label">Saldo actual MP</span><span class="sr-val pos">${fmt(SALDO_ACTUAL)}</span></div>
